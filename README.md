@@ -186,18 +186,4 @@ Prioridades:
 2. Use `eslint` + `prettier` para manter consistência de estilo.
 3. Documente alterações no `CHANGELOG.md`.
 
----
 
-## 🛣️ Roadmap Curto Prazo
-
-* [x] Estrutura inicial (models/controllers/services)
-* [ ] Script SQL e dados de exemplo
-* [ ] JWT Authentication + roles (Ultra Plus)
-* [ ] Proteção das rotas hardware/sensor
-* [ ] WebSocket/MQTT para atualização em tempo real
-* [ ] Testes automatizados + CI
-
-
-
-```
-```
