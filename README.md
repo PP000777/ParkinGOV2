@@ -1,24 +1,107 @@
-🚗 ParkingGo API – Backend (Node.js + Express + PostgreSQL)
+# ParkingGo API – Backend
 
-API moderna, segura e otimizada para gestão de usuários, vagas de estacionamento e reservas, construída com Node.js, Express, JWT Auth, PostgreSQL e arquitetura organizada em camadas.
+API REST para gerenciamento de vagas, usuários e reservas de estacionamento.  
+Desenvolvida com **Node.js**, **Express**, **PostgreSQL**, **JWT** e arquitetura organizada em camadas.
 
-🧱 Tecnologias principais
+---
 
-Node.js + Express
+## 1. Tecnologias
 
-PostgreSQL (com pg)
+- Node.js  
+- Express  
+- PostgreSQL (pg)  
+- JWT  
+- Bcrypt  
+- Helmet  
+- CORS  
+- Dotenv  
+- Arquitetura MVC  
 
-JWT para autenticação
+---
 
-Bcrypt para hash de senhas
+## 2. Como rodar o projeto
 
-Helmet + CORS para segurança
+### Clonar o repositório
+```bash
+git clone https://github.com/PP000777/ParkinGOV2
+cd ParkinGOV2
+```
 
-Arquitetura MVC (routes, controllers, middleware, db)
+### Instalar dependências
+```bash
+npm install
+```
 
-Suporte a ambientes de produção (SSL condicional no banco)
+### Criar arquivo `.env`
+Use como referência o `.env.example`:
 
-📂 Estrutura do Projeto
+```
+PORT=4000
+DATABASE_URL=postgres://postgres:12345@localhost:5432/parkinggodb
+JWT_SECRET=sua_chave_unica
+JWT_EXPIRES_IN=7d
+```
+
+---
+
+## 3. Banco de dados
+
+### Criar banco
+```sql
+CREATE DATABASE parkinggodb;
+```
+
+### Estruturas necessárias
+```sql
+CREATE TABLE usuarios (
+  id SERIAL PRIMARY KEY,
+  nome TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  senha TEXT NOT NULL,
+  plano TEXT DEFAULT 'Gratuito',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE vagas (
+  id SERIAL PRIMARY KEY,
+  numero INT UNIQUE NOT NULL,
+  setor TEXT,
+  status VARCHAR(20) DEFAULT 'Disponível',
+  tipo VARCHAR(20) DEFAULT 'Normal',
+  reservada_por INT,
+  data_reserva TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE reservations (
+  id SERIAL PRIMARY KEY,
+  usuario_id INT REFERENCES usuarios(id),
+  vaga_id INT REFERENCES vagas(id),
+  criado_em TIMESTAMP DEFAULT NOW()
+);
+```
+
+---
+
+## 4. Scripts
+
+### Desenvolvimento
+```bash
+npm run dev
+```
+
+### Produção
+```bash
+npm start
+```
+
+---
+
+## 5. Estrutura do projeto
+
+```
 src/
  ├── app.js
  ├── server.js
@@ -38,113 +121,84 @@ src/
  │    └── reservationRoutes.js
  ├── utils/
  │    └── validators.js
-.env
+```
 
-📦 Instalação
-1️⃣ Clonar o repositório
-git clone https://github.com/SeuUsuario/ParkingGo-API.git
-cd ParkingGo-API
+---
 
-2️⃣ Instalar dependências
-npm install
+## 6. Autenticação
 
-3️⃣ Criar arquivo .env
+A API usa JWT.  
+Em rotas protegidas, envie:
 
-Use o exemplo:
-
-PORT=4000
-
-DATABASE_URL=postgres://postgres:12345@localhost:5432/parkinggodb
-
-JWT_SECRET=uma_chave_secreta_bem_grande_e_unica
-JWT_EXPIRES_IN=7d
-
-🗄️ Configuração do PostgreSQL
-
-Crie o banco:
-
-CREATE DATABASE parkinggodb;
-
-
-Rodar estrutura (exemplo):
-
-CREATE TABLE usuarios (
-  id SERIAL PRIMARY KEY,
-  nome TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  senha TEXT NOT NULL,
-  plano TEXT DEFAULT 'Gratuito',
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE vagas (
-  id SERIAL PRIMARY KEY,
-  numero INT UNIQUE NOT NULL,
-  status VARCHAR(20) DEFAULT 'livre'
-);
-
-CREATE TABLE reservations (
-  id SERIAL PRIMARY KEY,
-  usuario_id INT REFERENCES usuarios(id),
-  vaga_id INT REFERENCES vagas(id),
-  criado_em TIMESTAMP DEFAULT NOW()
-);
-
-▶️ Rodar o servidor
-Desenvolvimento:
-npm run dev
-
-Produção:
-npm start
-
-🔐 Autenticação
-
-Toda requisição protegida deve incluir:
-
+```
 Authorization: Bearer SEU_TOKEN
+```
 
+---
 
-O token é gerado no login.
+## 7. Rotas da API
 
-📡 Endpoints da API
-👤 Auth
-Método	Rota	Descrição
-POST	/auth/register	Criar usuário
-POST	/auth/login	Login e obter token
-🧑‍💼 Usuários (Protegido)
-Método	Rota	Descrição
-GET	/usuarios/	Listar usuários
-GET	/usuarios/:id	Obter usuário
-PUT	/usuarios/:id	Atualizar
-DELETE	/usuarios/:id	Deletar
-🅿️ Vagas
-Método	Rota	Descrição
-GET	/vagas/	Listar vagas
-GET	/vagas/:id	Obter vaga
+### Auth
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/auth/register` | Registrar usuário |
+| POST | `/auth/login` | Login e geração de token |
 
-Gerenciamento (somente logados):
+---
 
-Método	Rota	Descrição
-POST	/vagas/	Criar vaga
-PUT	/vagas/:id	Atualizar
-DELETE	/vagas/:id	Remover
-PATCH	/vagas/:id/reservar	Reservar vaga
-PATCH	/vagas/:id/liberar	Liberar vaga
-📅 Reservas (Protegido)
-Método	Rota	Descrição
-POST	/reservations/:vagaId	Criar reserva
-GET	/reservations/minhas	Ver minhas reservas
-DELETE	/reservations/:id	Cancelar reserva
-🔨 Otimizações Implementadas
+### Usuários *(protected)*  
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/usuarios/` | Listar usuários |
+| GET | `/usuarios/:id` | Obter usuário |
+| PUT | `/usuarios/:id` | Atualizar |
+| DELETE | `/usuarios/:id` | Remover |
 
-✔ Banco com SSL automático para produção
-✔ Estrutura MVC clara
-✔ Controllers limpos e padronizados
-✔ Middleware JWT seguro
-✔ Helmet + CORS otimizados para Vite/React
-✔ Rotas separadas (auth, vagas, usuários, reservas)
-✔ Validações utilitárias melhoradas
-✔ Fluxo de reserva completo (vaga + tabela reservations)
-✔ Tratamento de erros centralizado
-✔ Melhor organização de arquivos
-✔ Suporte a múltiplos ambientes
+---
+
+### Vagas
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/vagas/` | Listar vagas |
+| GET | `/vagas/:id` | Obter vaga |
+| POST | `/vagas/` | Criar vaga *(auth)* |
+| PUT | `/vagas/:id` | Atualizar vaga *(auth)* |
+| DELETE | `/vagas/:id` | Remover vaga *(auth)* |
+| PATCH | `/vagas/:id/reservar` | Reservar vaga *(legacy)* |
+| PATCH | `/vagas/:id/liberar` | Liberar vaga *(legacy)* |
+
+---
+
+### Reservas (modelo novo)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/reservations/:vagaId` | Criar reserva |
+| GET | `/reservations/minhas` | Minhas reservas |
+| DELETE | `/reservations/:id` | Cancelar reserva |
+
+---
+
+## 8. Implementado
+
+- Autenticação JWT completa  
+- CRUD de usuários  
+- CRUD de vagas  
+- Sistema **novo** de reservas usando tabela `reservations`  
+- Middleware global de erros  
+- Middleware de autenticação  
+- SSL automático em produção  
+- Separação completa entre controllers/routes  
+- Validações centrais básicas  
+
+---
+
+## 9. Melhorias sugeridas
+
+- Permissões por papéis (admin/usuário)  
+- Swagger para documentação  
+- Rate limiting  
+- Logs (Winston)  
+
+---
+
+Pronto para uso e integração com o frontend React + Vite.
