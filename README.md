@@ -1,189 +1,150 @@
-```markdown
-# 🚗 ParkingGo! — Backend API
-> Backend RESTful em **Node.js + Express + PostgreSQL (Sequelize)** para o sistema de estacionamento inteligente **ParkingGo!** — gestão de vagas, reservas e integração com sensores. Projeto preparado para adicionar autenticação JWT e políticas de planos (ex.: Ultra Plus).
+🚗 ParkingGo API – Backend (Node.js + Express + PostgreSQL)
 
----
+API moderna, segura e otimizada para gestão de usuários, vagas de estacionamento e reservas, construída com Node.js, Express, JWT Auth, PostgreSQL e arquitetura organizada em camadas.
 
-## 🧠 Visão Geral
+🧱 Tecnologias principais
 
-O ParkingGo! fornece uma API para:
+Node.js + Express
 
-- Monitoramento em tempo real do status das vagas;
-- Reserva temporária (ex.: plano Ultra Plus — 15 minutos de tolerância);
-- Receber atualizações de sensores/hardware (status: `Disponível`, `Ocupada`, `Manutenção`);
-- Base pronta para autenticação JWT e autorização por plano.
+PostgreSQL (com pg)
 
----
+JWT para autenticação
 
-## ✨ Destaques
+Bcrypt para hash de senhas
 
-- Código organizado em camadas: `controllers`, `services`, `models`, `routes`.
-- Regras de negócio isoladas em `services/` (fácil testabilidade).
-- Script SQL (`create_db.sql`) para criar enums/tabelas + dados de teste.
-- Configuração via `.env` (dotenv).
-- Nodemon para dev.
----
+Helmet + CORS para segurança
 
-## 🛠️ Pré-requisitos
+Arquitetura MVC (routes, controllers, middleware, db)
 
-- Node.js >= 16  
-- npm >= 8  
-- PostgreSQL >= 12  
-- (Opcional) Docker & Docker Compose
+Suporte a ambientes de produção (SSL condicional no banco)
 
----
+📂 Estrutura do Projeto
+src/
+ ├── app.js
+ ├── server.js
+ ├── db/
+ │    └── index.js (ou db.js)
+ ├── middleware/
+ │    └── auth.js
+ ├── controllers/
+ │    ├── authController.js
+ │    ├── usuarioController.js
+ │    ├── vagasController.js
+ │    └── reservationController.js
+ ├── routes/
+ │    ├── authRoutes.js
+ │    ├── usuarioRoutes.js
+ │    ├── vagaRoutes.js
+ │    └── reservationRoutes.js
+ ├── utils/
+ │    └── validators.js
+.env
 
-## 🚀 Instalação Rápida
+📦 Instalação
+1️⃣ Clonar o repositório
+git clone https://github.com/SeuUsuario/ParkingGo-API.git
+cd ParkingGo-API
 
-```bash
-git clone https://github.com/seuusuario/parkinggo-backend.git
-cd parkinggo-backend
+2️⃣ Instalar dependências
 npm install
-cp .env.example .env
-# ajuste .env conforme seu ambiente
-psql -U <seu_usuario> -f create_db.sql
-npm run dev   # nodemon
-# ou npm start
-````
 
----
+3️⃣ Criar arquivo .env
 
-## 🔧 Configuração (`.env`)
+Use o exemplo:
 
-Exemplo (`.env.example`):
+PORT=4000
 
-```env
-PORT=3000
-NODE_ENV=development
+DATABASE_URL=postgres://postgres:12345@localhost:5432/parkinggodb
 
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=parkinggodb
-DB_USER=postgres
-DB_PASSWORD=sua_senha_secreta
+JWT_SECRET=uma_chave_secreta_bem_grande_e_unica
+JWT_EXPIRES_IN=7d
 
-JWT_SECRET=UM_SEGREDO_MUITO_FORTE_E_ALEATORIO_PARA_JWT
-```
+🗄️ Configuração do PostgreSQL
 
-> **Nunca** comite `.env` com credenciais reais.
+Crie o banco:
 
----
-
-## 🗄️ Banco de Dados
-
-* Execute `create_db.sql` para criar tipos ENUM (`vaga_status`, `vaga_tipo`), tabelas `vagas` e `usuarios` e inserir dados de exemplo.
-* Em produção, **use migrations** (ex.: `sequelize-cli` ou um sistema de migração), não `sequelize.sync({ force: true })`.
-
----
-
-## 🐳 Rodando com Docker (exemplo rápido)
-
-`docker-compose.yml` mínimo sugerido:
-
-```yaml
-version: "3.8"
-services:
-  db:
-    image: postgres:14
-    environment:
-      POSTGRES_DB: parkinggodb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: sua_senha_secreta
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  api:
-    build: .
-    command: npm run dev
-    environment:
-      - DB_HOST=db
-      - DB_USER=postgres
-      - DB_PASSWORD=sua_senha_secreta
-      - DB_NAME=parkinggodb
-    ports:
-      - "3000:3000"
-    depends_on:
-      - db
-
-volumes:
-  pgdata:
-```
-
----
-
-## 📡 Endpoints Principais
-
-Base: `http://localhost:3000`
-
-* `GET  /` — health check
-* `GET  /api/vagas` — lista todas as vagas
-* `GET  /api/vagas/resumo` — resumo por setor (total / disponíveis)
-* `POST /api/vagas/reservar` — reservar vaga (body: `{ vagaId, usuarioId }`)
-* `PUT  /api/vagas/:id/status` — atualizar status (body: `{ status }`)
-
----
-
-## 🔁 Exemplos (curl)
-
-Listar vagas:
-
-```bash
-curl http://localhost:3000/api/vagas
-```
-
-Reservar vaga:
-
-```bash
-curl -X POST http://localhost:3000/api/vagas/reservar \
-  -H "Content-Type: application/json" \
-  -d '{"vagaId":1,"usuarioId":"uid_premium_1"}'
-```
-
-Atualizar status (sensor):
-
-```bash
-curl -X PUT http://localhost:3000/api/vagas/2/status \
-  -H "Content-Type: application/json" \
-  -d '{"status":"Disponível"}'
-```
-
----
-
-## 🧩 Regras de Negócio (essenciais)
-
-* Reserva só se `status === 'Disponível'` e sem reserva ativa.
-* Tempo de tolerância da reserva: **15 minutos** (constante `TEMPO_RESERVA_MINUTOS`).
-* Quando sensor reporta `Disponível`, reserva é limpa (`reservada_por_usuario_id = null`, `expira_em = null`).
-* Códigos HTTP usados: `200`, `400`, `404`, `409`, `500`.
-
----
-
-## 🔒 Segurança & Próximos Passos
-
-Prioridades:
-
-1. Implementar **autenticação JWT** (login, refresh tokens).
-2. Autorização por plano: somente `Ultra Plus` pode reservar.
-3. Proteger rota de sensores (`/api/vagas/:id/status`) com token/assinatura específica do hardware.
-4. Input validation (Joi/Zod), rate limiting, CORS, logs estruturados e monitoramento (Sentry/Prometheus).
-
-> Posso implementar um fluxo básico de JWT + middleware de autorização agora, se quiser.
-
----
-
-## 🧪 Testes & CI
-
-* Recomendado criar testes unitários para `services/` (reserva/expiração) e `controllers/`.
-* Ex.: GitHub Actions com Node matrix (16, 18), execução de lint + testes.
-
----
-
-## 🤝 Contribuição
-
-1. Fork → branch `feature/<nome>` → PR claro com descrição e testes.
-2. Use `eslint` + `prettier` para manter consistência de estilo.
-3. Documente alterações no `CHANGELOG.md`.
+CREATE DATABASE parkinggodb;
 
 
+Rodar estrutura (exemplo):
+
+CREATE TABLE usuarios (
+  id SERIAL PRIMARY KEY,
+  nome TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  senha TEXT NOT NULL,
+  plano TEXT DEFAULT 'Gratuito',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE vagas (
+  id SERIAL PRIMARY KEY,
+  numero INT UNIQUE NOT NULL,
+  status VARCHAR(20) DEFAULT 'livre'
+);
+
+CREATE TABLE reservations (
+  id SERIAL PRIMARY KEY,
+  usuario_id INT REFERENCES usuarios(id),
+  vaga_id INT REFERENCES vagas(id),
+  criado_em TIMESTAMP DEFAULT NOW()
+);
+
+▶️ Rodar o servidor
+Desenvolvimento:
+npm run dev
+
+Produção:
+npm start
+
+🔐 Autenticação
+
+Toda requisição protegida deve incluir:
+
+Authorization: Bearer SEU_TOKEN
+
+
+O token é gerado no login.
+
+📡 Endpoints da API
+👤 Auth
+Método	Rota	Descrição
+POST	/auth/register	Criar usuário
+POST	/auth/login	Login e obter token
+🧑‍💼 Usuários (Protegido)
+Método	Rota	Descrição
+GET	/usuarios/	Listar usuários
+GET	/usuarios/:id	Obter usuário
+PUT	/usuarios/:id	Atualizar
+DELETE	/usuarios/:id	Deletar
+🅿️ Vagas
+Método	Rota	Descrição
+GET	/vagas/	Listar vagas
+GET	/vagas/:id	Obter vaga
+
+Gerenciamento (somente logados):
+
+Método	Rota	Descrição
+POST	/vagas/	Criar vaga
+PUT	/vagas/:id	Atualizar
+DELETE	/vagas/:id	Remover
+PATCH	/vagas/:id/reservar	Reservar vaga
+PATCH	/vagas/:id/liberar	Liberar vaga
+📅 Reservas (Protegido)
+Método	Rota	Descrição
+POST	/reservations/:vagaId	Criar reserva
+GET	/reservations/minhas	Ver minhas reservas
+DELETE	/reservations/:id	Cancelar reserva
+🔨 Otimizações Implementadas
+
+✔ Banco com SSL automático para produção
+✔ Estrutura MVC clara
+✔ Controllers limpos e padronizados
+✔ Middleware JWT seguro
+✔ Helmet + CORS otimizados para Vite/React
+✔ Rotas separadas (auth, vagas, usuários, reservas)
+✔ Validações utilitárias melhoradas
+✔ Fluxo de reserva completo (vaga + tabela reservations)
+✔ Tratamento de erros centralizado
+✔ Melhor organização de arquivos
+✔ Suporte a múltiplos ambientes

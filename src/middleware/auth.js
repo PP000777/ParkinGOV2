@@ -1,23 +1,42 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+/**
+ * Middleware de autenticação JWT.
+ * Valida o token enviado no header `Authorization: Bearer <token>`.
+ */
 const authMiddleware = (req, res, next) => {
   const header = req.headers.authorization;
-  if (!header) return res.status(401).json({ error: 'Token não fornecido' });
 
-  const parts = header.split(' ');
-  if (parts.length !== 2) return res.status(401).json({ error: 'Token inválido' });
+  // Nenhum token enviado
+  if (!header) {
+    return res.status(401).json({ error: 'Token não fornecido' });
+  }
 
-  const scheme = parts[0];
-  const token = parts[1];
+  /**
+   * Ex.: "Bearer xxxxxxxxx"
+   */
+  const [scheme, token] = header.split(' ');
 
-  if (!/^Bearer$/i.test(scheme)) return res.status(401).json({ error: 'Token mal formatado' });
+  // Checa formatação correta do header
+  if (scheme !== 'Bearer' || !token) {
+    return res.status(401).json({ error: 'Token mal formatado' });
+  }
 
   try {
+    // Verifica e decodifica o token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // contém id, email
-    next();
+
+    /**
+     * Armazena os dados do usuário logado
+     * Ex: { id: 1, email: "...", plano: "...", iat, exp }
+     */
+    req.user = decoded;
+
+    return next();
+
   } catch (err) {
+    console.error("❌ Erro ao validar token:", err);
     return res.status(401).json({ error: 'Token inválido ou expirado' });
   }
 };
