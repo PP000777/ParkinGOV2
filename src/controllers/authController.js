@@ -1,12 +1,13 @@
 const db = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { isEmail, isNotEmpty } = require('../utils/validators');
 require('dotenv').config();
 
 const SALT_ROUNDS = 10;
 
 /**
- * Helper: Gera JWT para usuário
+ * Helper: gera JWT para o usuário
  */
 function generateToken(user) {
   return jwt.sign(
@@ -23,17 +24,32 @@ exports.register = async (req, res, next) => {
   try {
     const { nome, email, senha, plano } = req.body;
 
-    // Validação básica
-    if (!nome || !email || !senha) {
+    // 🔍 Validações
+    if (!isNotEmpty(nome) || !isNotEmpty(email) || !isNotEmpty(senha)) {
       return res.status(400).json({
         success: false,
-        message: 'Nome, e-mail e senha são obrigatórios.',
+        message: 'Nome, e-mail e senha são obrigatórios.'
       });
     }
 
-    // Hash da senha
+    if (!isEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Formato de e-mail inválido.'
+      });
+    }
+
+    if (senha.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'A senha deve ter pelo menos 6 caracteres.'
+      });
+    }
+
+    // Criptografa senha
     const hashed = await bcrypt.hash(senha, SALT_ROUNDS);
 
+    // Insere usuário
     const result = await db.query(
       `INSERT INTO usuarios (nome, email, senha, plano)
        VALUES ($1, $2, $3, $4)
@@ -46,15 +62,14 @@ exports.register = async (req, res, next) => {
     return res.status(201).json({
       success: true,
       message: 'Usuário registrado com sucesso!',
-      data: user,
+      data: user
     });
 
   } catch (err) {
-    // Email duplicado
     if (err.code === '23505') {
       return res.status(400).json({
         success: false,
-        message: 'E-mail já cadastrado.',
+        message: 'Este e-mail já está cadastrado.'
       });
     }
 
@@ -69,37 +84,44 @@ exports.login = async (req, res, next) => {
   try {
     const { email, senha } = req.body;
 
-    if (!email || !senha) {
+    if (!isNotEmpty(email) || !isNotEmpty(senha)) {
       return res.status(400).json({
         success: false,
-        message: 'E-mail e senha são obrigatórios.',
+        message: 'E-mail e senha são obrigatórios.'
       });
     }
 
-    // Busca usuário pelo e-mail
+    if (!isEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Formato de e-mail inválido.'
+      });
+    }
+
     const result = await db.query(
       'SELECT id, nome, email, senha, plano FROM usuarios WHERE email = $1',
       [email]
     );
 
     const user = result.rows[0];
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Credenciais inválidas.',
+        message: 'Credenciais inválidas.'
       });
     }
 
-    // Compara senhas
     const match = await bcrypt.compare(senha, user.senha);
+
     if (!match) {
       return res.status(401).json({
         success: false,
-        message: 'Credenciais inválidas.',
+        message: 'Credenciais inválidas.'
       });
     }
 
-    // Gera JWT
+    // JWT
     const token = generateToken(user);
 
     return res.json({
@@ -111,9 +133,9 @@ exports.login = async (req, res, next) => {
           id: user.id,
           nome: user.nome,
           email: user.email,
-          plano: user.plano,
-        },
-      },
+          plano: user.plano
+        }
+      }
     });
 
   } catch (err) {
