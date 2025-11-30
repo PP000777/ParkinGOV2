@@ -17,7 +17,7 @@ const auth = require('../middleware/auth'); // garante que só usuários logados
 router.post('/:vagaId', auth, reservationController.criarReserva);
 
 // Listar reservas do usuário logado
-router.get('/minhas', auth, reservationController.listarMinhasReservas);
+router.get('/minhas', auth, reservationController.minhasReservas);
 
 // Cancelar reserva
 router.delete('/:id', auth, reservationController.cancelarReserva);
